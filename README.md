@@ -396,7 +396,6 @@ In case of failure of the external call Azure Functions app set the value of the
 ]
 ```
 
-
 You can alsp use the following query to retrieve how many outbound calls were made with each public IP address provided by the Public IP Address Prefix:
 
 ```sql
