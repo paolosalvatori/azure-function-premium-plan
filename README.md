@@ -1,10 +1,6 @@
 ---
 services: azure, azure-functions, azure-storage, azure-blob-storage, azure-service-bus-messaging, azure-application-insights, azure-bastion, azure-cosmos-db, azure-dns, app-service, azure-monitor, service-bus-messaging, storage, virtual-network, azure-private-link, azure-resource-manager,  azure-virtual-machines-windows, azure-virtual-network, dotnet-core, vs-code
 platforms: dotnet-core, aspnet-core
-languages: csharp
-description: "This sample shows how to connect Azure Functions in a Premium Plan to Azure resources using private endpoints and how to use NAT gateway for outbound connections from the regional integration virtual network."
-azureDeploy: https://raw.githubusercontent.com/paolosalvatori/azure-function-premium-plan/master/templates/azuredeploy.json
-author: paolosalvatori
 ---
 
 # How to use private endpoints and NAT gateway with Azure Functions
