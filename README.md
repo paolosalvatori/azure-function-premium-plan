@@ -92,7 +92,7 @@ You can use the [Azure Cosmos DB Emulator](https://docs.microsoft.com/azure/cosm
 
 You can use the ARM template and Bash script included in the sample to deploy to Azure the entire infrastructure necessary to host the demo:
 
-```azurecli
+```sh
 #!/bin/bash
 
 # Variables
@@ -124,21 +124,21 @@ createResourceGroup() {
         exit
     fi
 
-    echo "Checking if [$resourceGroupName] resource group actually exists in the [$subscriptionName] subscription..."
+    echo "Checking if [$resourceGroupName] resource group actually exists..."
 
     if ! az group show --name "$resourceGroupName" &>/dev/null; then
-        echo "No [$resourceGroupName] resource group actually exists in the [$subscriptionName] subscription"
-        echo "Creating [$resourceGroupName] resource group in the [$subscriptionName] subscription..."
+        echo "No [$resourceGroupName] resource group actually exists"
+        echo "Creating [$resourceGroupName] resource group..."
 
         # Create the resource group
         if az group create --name "$resourceGroupName" --location "$location" 1>/dev/null; then
-            echo "[$resourceGroupName] resource group successfully created in the [$subscriptionName] subscription"
+            echo "[$resourceGroupName] resource group successfully created"
         else
-            echo "Failed to create [$resourceGroupName] resource group in the [$subscriptionName] subscription"
+            echo "Failed to create [$resourceGroupName] resource group"
             exit
         fi
     else
-        echo "[$resourceGroupName] resource group already exists in the [$subscriptionName] subscription"
+        echo "[$resourceGroupName] resource group already exists"
     fi
 }
 
