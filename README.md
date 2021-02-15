@@ -360,6 +360,8 @@ namespace BaboNatGw
 }
 ```
 
+Note: when debugging the Azure Function locally, make sure to replace the placeholders in the local.settings.json file with valid connection strings to storage account, Service Bus namespace, and Cosmos DB account.
+
 ## Run the sample
 
 You can proceed as follows to run the sample:
