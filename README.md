@@ -12,6 +12,7 @@ This sample shows how to use [Azure Private Endpoints](https://docs.microsoft.co
 ## Deploy to Azure
 
 You can use the following button to deploy the demo to your Azure subscription:
+
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2FAzure-Functions-Private-Endpoints%2Fmaster%2Ftemplate%2Fazuredeploy.json%3Ftoken%3DAAIW4AOWATWNQLL2JZKDBAK63EOOU)
 
 ## Architecture
