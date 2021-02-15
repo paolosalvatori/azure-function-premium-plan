@@ -287,8 +287,12 @@ namespace BaboNatGw
         private static HttpClient httpClient = lazyClient.Value; 
 
         [FunctionName("ProcessRequest")]
-        public static async Task Run([ServiceBusTrigger("%ServiceBusQueueName%", Connection = "ServiceBusConnectionString")] Message message,
-                                     [CosmosDB(databaseName: "%CosmosDbName%", collectionName:"%CosmosDbCollectionName%", ConnectionStringSetting = "CosmosDBConnection")] IAsyncCollector<CustomMessage> items,
+        public static async Task Run([ServiceBusTrigger("%ServiceBusQueueName%", 
+                                     Connection = "ServiceBusConnectionString")] Message message,
+                                     [CosmosDB(databaseName: "%CosmosDbName%", 
+                                     collectionName:"%CosmosDbCollectionName%", 
+                                     ConnectionStringSetting = "CosmosDBConnection")]
+                                      IAsyncCollector<CustomMessage> items,
                                       ILogger log,
                                       ExecutionContext executionContext)
         {
@@ -301,7 +305,8 @@ namespace BaboNatGw
                 }
 
                 // Initialize data
-                var messageId = string.IsNullOrEmpty(message.MessageId) ? Guid.NewGuid().ToString() : message.MessageId;
+                var messageId = string.IsNullOrEmpty(message.MessageId) ? 
+                                Guid.NewGuid().ToString() : message.MessageId;
                 var text = Encoding.UTF8.GetString(message.Body);
                 var publicIpAddress = Unknown;
 
@@ -317,7 +322,7 @@ namespace BaboNatGw
                 }
                 catch (Exception ex)
                 {
-                    log.LogError(ex, $"An error occurred while processing message with id=[{messageId}]: {ex.Message}");
+log.LogError(ex, $"An error occurred while processing message with id=[{messageId}]: {ex.Message}");
                 }
 
                 // Initialize message
@@ -325,7 +330,7 @@ namespace BaboNatGw
                 {
                     Id = messageId,
                     Message = text,
-                    Properties = new System.Collections.Generic.Dictionary<string, object>(message.UserProperties),
+                    Properties = new Dictionary<string, object>(message.UserProperties),
                     PublicIpAddress = publicIpAddress
                 };
 
