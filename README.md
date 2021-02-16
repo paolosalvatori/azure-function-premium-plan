@@ -383,77 +383,83 @@ In case of failure of the external call Azure Functions app set the value of the
 
 ```json
 [
-    "20.62.17.136",
-    "20.62.17.140",
-    "20.62.17.141",
-    "20.62.17.133",
-    "20.62.17.131",
-    "20.62.17.143",
-    "20.62.17.134",
-    "20.62.17.129",
-    "20.62.17.142",
-    "20.62.17.135",
-    "20.62.17.139",
-    "20.62.17.130"
+    "20.61.15.136",
+    "20.61.15.140",
+    "20.61.15.141",
+    "20.61.15.133",
+    "20.61.15.131",
+    "20.61.15.143",
+    "20.61.15.134",
+    "20.61.15.129",
+    "20.61.15.142",
+    "20.61.15.135",
+    "20.61.15.139",
+    "20.61.15.130"
 ]
 ```
 
-You can alsp use the following query to retrieve how many outbound calls were made with each public IP address provided by the Public IP Address Prefix:
+Below you can see the public IP address range in CIDR notation of the Public IP Address Prefix resource used by the NAT Gateway.
+
+![Prefix](images/prefix.png)
+
+The Public IP Addres Prefix includes 16 public IP addresses that go from 20.61.15.128 to 20.61.15.143. For more information, see [CIDR Notation](https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing#:~:text=CIDR%20notation%20is%20a%20compact,bits%20in%20the%20network%20mask.).
+
+You can also use the following query to retrieve how many outbound calls were made with each public IP address provided by the Public IP Address Prefix:
 
 ```sql
 SELECT m.publicIpAddress,  COUNT(m.publicIpAddress) FROM Messages m GROUP BY m.publicIpAddress
 ```
 
-The query returns a result like the following:
+The query returns something like this:
 
 ```json
 [
     {
-        "publicIpAddress": "20.62.17.130",
+        "publicIpAddress": "20.61.15.130",
         "$1": 33
     },
     {
-        "publicIpAddress": "20.62.17.139",
+        "publicIpAddress": "20.61.15.139",
         "$1": 38
     },
     {
-        "publicIpAddress": "20.62.17.135",
+        "publicIpAddress": "20.61.15.135",
         "$1": 8
     },
     {
-        "publicIpAddress": "20.62.17.142",
+        "publicIpAddress": "20.61.15.142",
         "$1": 204
     },
     {
-        "publicIpAddress": "20.62.17.129",
+        "publicIpAddress": "20.61.15.129",
         "$1": 232
     },
     {
-        "publicIpAddress": "20.62.17.134",
+        "publicIpAddress": "20.61.15.134",
         "$1": 62
     },
     {
-        "publicIpAddress": "20.62.17.143",
+        "publicIpAddress": "20.61.15.143",
         "$1": 8
     },
     {
-        "publicIpAddress": "20.62.17.131",
+        "publicIpAddress": "20.61.15.131",
         "$1": 128
     },
     {
-        "publicIpAddress": "20.62.17.133",
+        "publicIpAddress": "20.61.15.133",
         "$1": 11
     },
     {
-        "publicIpAddress": "20.62.17.141",
+        "publicIpAddress": "20.61.15.141",
         "$1": 119
     },
     {
-        "publicIpAddress": "20.62.17.140",
+        "publicIpAddress": "20.61.15.140",
         "$1": 120
     },
     {
-        "publicIpAddress": "20.62.17.136",
+        "publicIpAddress": "20.61.15.136",
         "$1": 37
     }
 ]
