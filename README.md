@@ -315,7 +315,9 @@ namespace Microsoft.Azure.Samples
         #endregion
 
         #region Private Static Fields
-        private static string queueName = Environment.GetEnvironmentVariable("ServiceBusQueueName", EnvironmentVariableTarget.Process);
+        private static string queueName = Environment.
+                                          GetEnvironmentVariable("ServiceBusQueueName", 
+                                          EnvironmentVariableTarget.Process);
         #endregion
 
         #region Public Constructor
@@ -326,8 +328,12 @@ namespace Microsoft.Azure.Samples
         #endregion
 
         [FunctionName("ProcessRequest")]
-        public async Task Run([ServiceBusTrigger("%ServiceBusQueueName%", Connection = "ServiceBusConnectionString")] Message message,
-                              [CosmosDB(databaseName: "%CosmosDbName%", collectionName:"%CosmosDbCollectionName%", ConnectionStringSetting = "CosmosDBConnection")] IAsyncCollector<CustomMessage> items,
+        public async Task Run([ServiceBusTrigger("%ServiceBusQueueName%", 
+                              Connection = "ServiceBusConnectionString")] Message message,
+                              [CosmosDB(databaseName: "%CosmosDbName%", 
+                              collectionName:"%CosmosDbCollectionName%", 
+                              ConnectionStringSetting = "CosmosDBConnection")] 
+                              IAsyncCollector<CustomMessage> items,
                               ILogger log,
                               ExecutionContext executionContext)
         {
