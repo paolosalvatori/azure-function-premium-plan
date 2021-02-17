@@ -14,24 +14,19 @@
 #endregion
 
 #region Using Directives
-using System.Collections.Generic;
-using Newtonsoft.Json;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Azure.Functions.Extensions.DependencyInjection;
 #endregion
+
+[assembly: FunctionsStartup(typeof(Microsoft.Azure.Samples.Startup))]
 
 namespace Microsoft.Azure.Samples
 {
-    public class CustomMessage
+    public class Startup : FunctionsStartup
     {
-        [JsonProperty(PropertyName = "id")]
-        public string Id { get; set; }
-
-        [JsonProperty(PropertyName = "message")]
-        public string Message { get; set; }
-
-        [JsonProperty(PropertyName = "properties")]
-        public Dictionary<string, object> Properties { get; set; }
-
-        [JsonProperty(PropertyName = "publicIpAddress")]
-        public string PublicIpAddress { get; set; }
+        public override void Configure(IFunctionsHostBuilder builder)
+        {
+            builder.Services.AddHttpClient();
+        }
     }
 }

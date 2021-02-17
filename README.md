@@ -271,30 +271,65 @@ Once the Azure resources have been deployed to Azure (which can take about 10-12
 func azure functionapp publish [YOUR-FUNCTION-APP-NAME]
 ```
 
-Below you can read the code of the Azure Function. To avoid the SNAT port exhaustion issue, the function makes use of a static, singleton instance of the HttpClient object to call the external ipify service via HTTPS. To avoid holding more connections than necessary, we suggest to reuse client instances rather than creating new ones with each function invocation. We recommend reusing client connections for any language that you might write your function in. For example, .NET clients like the HttpClient, DocumentClient, and Azure Storage clients can manage connections if you use a single, static client. For more information, see [https://docs.microsoft.com/en-us/azure/azure-functions/manage-connections#static-clients](https://docs.microsoft.com/en-us/azure/azure-functions/manage-connections#client-code-examples).
+Below you can read the code of the Azure Function. The code of the Azure Function makes use of the the dependency injection (DI) software design pattern, which is a technique to achieve [Inversion of Control (IoC)](https://docs.microsoft.com/en-us/dotnet/standard/modern-web-apps-azure-architecture/architectural-principles#dependency-inversion) between classes and their dependencies.
+
+- Dependency injection in Azure Functions is built on the .NET Core Dependency Injection features. Familiarity with [.NET Core dependency injection](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/dependency-injection) is recommended. There are differences in how you override dependencies and how configuration values are read with Azure Functions on the Consumption plan.
+- Support for dependency injection begins with Azure Functions 2.x.
+
+For more information, see [Use dependency injection in .NET Azure Functions](https://docs.microsoft.com/en-us/azure/azure-functions/functions-dotnet-dependency-injection#register-services).
 
 ```csharp
-namespace BaboNatGw
+using System;
+using System.Text;
+using System.Net.Http;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Microsoft.Azure.WebJobs;
+using Microsoft.Azure.ServiceBus;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Azure.Functions.Extensions.DependencyInjection;
+
+[assembly: FunctionsStartup(typeof(Microsoft.Azure.Samples.Startup))]
+
+namespace Microsoft.Azure.Samples
 {
-    public static class RequestReceiver
+    public class Startup : FunctionsStartup
     {
-        // Private Constants
+        public override void Configure(IFunctionsHostBuilder builder)
+        {
+            builder.Services.AddHttpClient();
+        }
+    }
+    
+    public class RequestReceiver
+    {
+        #region Private Constants
         private const string IpifyUrl = "https://api.ipify.org";
         private const string Unknown = "UNKNOWN";
+        private const string Empty = "EMPTY";
+        #endregion
 
-        // Create a single, static HttpClient
-        private static Lazy<HttpClient> lazyClient = new Lazy<HttpClient>();
-        private static HttpClient httpClient = lazyClient.Value; 
+
+        #region Private Instance Fields
+        private readonly HttpClient httpClient;
+        #endregion
+
+        #region Private Static Fields
+        private static string queueName = Environment.GetEnvironmentVariable("ServiceBusQueueName", EnvironmentVariableTarget.Process);
+        #endregion
+
+        #region Public Constructor
+        public RequestReceiver(HttpClient httpClient)
+        {
+            this.httpClient = httpClient;
+        } 
+        #endregion
 
         [FunctionName("ProcessRequest")]
-        public static async Task Run([ServiceBusTrigger("%ServiceBusQueueName%", 
-                                     Connection = "ServiceBusConnectionString")] Message message,
-                                     [CosmosDB(databaseName: "%CosmosDbName%", 
-                                     collectionName:"%CosmosDbCollectionName%", 
-                                     ConnectionStringSetting = "CosmosDBConnection")]
-                                      IAsyncCollector<CustomMessage> items,
-                                      ILogger log,
-                                      ExecutionContext executionContext)
+        public async Task Run([ServiceBusTrigger("%ServiceBusQueueName%", Connection = "ServiceBusConnectionString")] Message message,
+                              [CosmosDB(databaseName: "%CosmosDbName%", collectionName:"%CosmosDbCollectionName%", ConnectionStringSetting = "CosmosDBConnection")] IAsyncCollector<CustomMessage> items,
+                              ILogger log,
+                              ExecutionContext executionContext)
         {
             try
             {
@@ -304,12 +339,19 @@ namespace BaboNatGw
                     return;
                 }
 
+                // Log message
+                log.LogInformation($"Started '{executionContext.FunctionName}' " + 
+                                   $"(Running, Id={executionContext.InvocationId}) " +
+                                   $"A message with Id={message.MessageId ?? Empty} " + 
+                                   $"has been received from the {queueName} queue");
+
                 // Initialize data
                 var messageId = string.IsNullOrEmpty(message.MessageId) ? 
-                                Guid.NewGuid().ToString() : message.MessageId;
-                var text = Encoding.UTF8.GetString(message.Body);
+                                Guid.NewGuid().ToString() : 
+                                message.MessageId;
+                var text = Encoding.UTF8.GetString(message.Body) ?? Empty;
                 var publicIpAddress = Unknown;
-
+                
                 // Retrieve the public IP from Ipify site
                 try
                 {
@@ -318,11 +360,18 @@ namespace BaboNatGw
                     if (response.IsSuccessStatusCode)
                     {
                         publicIpAddress = await response.Content.ReadAsStringAsync();
+
+                        // Log message
+                        log.LogInformation($"Running '{executionContext.FunctionName}' " +
+                                           $"(Running, Id={executionContext.InvocationId}) " +
+                                           $"Call to {IpifyUrl} returned {publicIpAddress}");
                     }
                 }
                 catch (Exception ex)
                 {
-log.LogError(ex, $"An error occurred while processing message with id=[{messageId}]: {ex.Message}");
+                    log.LogError(ex, $"Error '{executionContext.FunctionName}' " +
+                                     $"(Running, Id={executionContext.InvocationId}) " +
+                                     $"An error occurred while calling {IpifyUrl}: {ex.Message}");
                 }
 
                 // Initialize message
@@ -336,10 +385,15 @@ log.LogError(ex, $"An error occurred while processing message with id=[{messageI
 
                 // Store the message to Cosmos DB
                 await items.AddAsync(customMessage);
+                log.LogInformation($"Completed '{executionContext.FunctionName}' " +
+                                   $"(Running, Id={executionContext.InvocationId}) "+
+                                   $"The message with Id={message.MessageId ?? Empty} " +
+                                   $"has been successfully stored to Cosmos DB");
             }
             catch (Exception ex)
             {
-                log.LogError(ex, ex.Message);
+                log.LogError(ex, $"Failed '{executionContext.FunctionName}' " +
+                                 $"(Running, Id={executionContext.InvocationId}) {ex.Message}");
                 throw;
             }
         }
@@ -362,6 +416,8 @@ log.LogError(ex, $"An error occurred while processing message with id=[{messageI
 }
 ```
 
+As an altenative, you can use of a static, singleton instance of the HttpClient object to call the external ipify service via HTTPS. To avoid holding more connections than necessary, we suggest to reuse client instances rather than creating new ones with each function invocation. We recommend reusing client connections for any language that you might write your function in. For example, .NET clients like the HttpClient, DocumentClient, and Azure Storage clients can manage connections if you use a single, static client. For more information, see [https://docs.microsoft.com/en-us/azure/azure-functions/manage-connections#static-clients](https://docs.microsoft.com/en-us/azure/azure-functions/manage-connections#client-code-examples).
+
 Note: when debugging the Azure Function locally, make sure to replace the placeholders in the local.settings.json file with valid connection strings to storage account, Service Bus namespace, and Cosmos DB account.
 
 ## Run the sample
@@ -379,7 +435,7 @@ You can proceed as follows to run the sample:
 SELECT DISTINCT VALUE m.publicIpAddress FROM Messages m
 ```
 
-In case of failure of the external call Azure Functions app set the value of the UNKWON. As you can see below, none of the query was returned an error.
+In case of failure of the external call Azure Functions app set the value of the UNKWON. As you can see below, none of the HTTPS calls to the external service returned an error, all of them used one of the 16 public IP addresses provided by the NAT Gateway and Public IP Address Prefix.
 
 ```json
 [
@@ -394,7 +450,11 @@ In case of failure of the external call Azure Functions app set the value of the
     "20.61.15.142",
     "20.61.15.135",
     "20.61.15.139",
-    "20.61.15.130"
+    "20.61.15.130",
+    "20.61.15.132",
+    "20.61.15.138",
+    "20.61.15.128",
+    "20.61.15.137"
 ]
 ```
 
@@ -410,57 +470,73 @@ You can also use the following query to retrieve how many outbound calls were ma
 SELECT m.publicIpAddress,  COUNT(m.publicIpAddress) FROM Messages m GROUP BY m.publicIpAddress
 ```
 
-The query returns something like this:
+The query should return something like this:
 
 ```json
 [
     {
+        "publicIpAddress": "20.61.15.137",
+        "$1": 83
+    },
+    {
+        "publicIpAddress": "20.61.15.128",
+        "$1": 87
+    },
+    {
+        "publicIpAddress": "20.61.15.138",
+        "$1": 177
+    },
+    {
+        "publicIpAddress": "20.61.15.132",
+        "$1": 361
+    },
+    {
         "publicIpAddress": "20.61.15.130",
-        "$1": 33
+        "$1": 231
     },
     {
         "publicIpAddress": "20.61.15.139",
-        "$1": 38
+        "$1": 185
     },
     {
         "publicIpAddress": "20.61.15.135",
-        "$1": 8
+        "$1": 123
     },
     {
         "publicIpAddress": "20.61.15.142",
-        "$1": 204
+        "$1": 405
     },
     {
         "publicIpAddress": "20.61.15.129",
-        "$1": 232
+        "$1": 266
     },
     {
         "publicIpAddress": "20.61.15.134",
-        "$1": 62
+        "$1": 210
     },
     {
         "publicIpAddress": "20.61.15.143",
-        "$1": 8
+        "$1": 87
     },
     {
         "publicIpAddress": "20.61.15.131",
-        "$1": 128
+        "$1": 379
     },
     {
         "publicIpAddress": "20.61.15.133",
-        "$1": 11
+        "$1": 187
     },
     {
         "publicIpAddress": "20.61.15.141",
-        "$1": 119
+        "$1": 373
     },
     {
         "publicIpAddress": "20.61.15.140",
-        "$1": 120
+        "$1": 299
     },
     {
         "publicIpAddress": "20.61.15.136",
-        "$1": 37
+        "$1": 547
     }
 ]
 ```

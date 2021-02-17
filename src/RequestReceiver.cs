@@ -18,32 +18,43 @@ using System;
 using System.Text;
 using System.Net.Http;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.ServiceBus;
-using System.Linq;
 #endregion
 
-namespace BaboNatGw
+namespace Microsoft.Azure.Samples
 {
-    public static class RequestReceiver
+    public class RequestReceiver
     {
         #region Private Constants
         private const string IpifyUrl = "https://api.ipify.org";
         private const string Unknown = "UNKNOWN";
+        private const string Empty = "EMPTY";
+        #endregion
+
+
+        #region Private Instance Fields
+        private readonly HttpClient httpClient;
         #endregion
 
         #region Private Static Fields
-        // Create a single, static HttpClient
-        private static Lazy<HttpClient> lazyClient = new Lazy<HttpClient>();
-        private static HttpClient httpClient = lazyClient.Value; 
+        private static string queueName = Environment.GetEnvironmentVariable("ServiceBusQueueName", EnvironmentVariableTarget.Process);
+        #endregion
+
+        #region Public Constructor
+        public RequestReceiver(HttpClient httpClient)
+        {
+            this.httpClient = httpClient;
+        } 
         #endregion
 
         [FunctionName("ProcessRequest")]
-        public static async Task Run([ServiceBusTrigger("%ServiceBusQueueName%", Connection = "ServiceBusConnectionString")] Message message,
-                                     [CosmosDB(databaseName: "%CosmosDbName%", collectionName:"%CosmosDbCollectionName%", ConnectionStringSetting = "CosmosDBConnection")] IAsyncCollector<CustomMessage> items,
-                                      ILogger log,
-                                      ExecutionContext executionContext)
+        public async Task Run([ServiceBusTrigger("%ServiceBusQueueName%", Connection = "ServiceBusConnectionString")] Message message,
+                              [CosmosDB(databaseName: "%CosmosDbName%", collectionName:"%CosmosDbCollectionName%", ConnectionStringSetting = "CosmosDBConnection")] IAsyncCollector<CustomMessage> items,
+                              ILogger log,
+                              ExecutionContext executionContext)
         {
             try
             {
@@ -53,11 +64,19 @@ namespace BaboNatGw
                     return;
                 }
 
-                // Initialize data
-                var messageId = string.IsNullOrEmpty(message.MessageId) ? Guid.NewGuid().ToString() : message.MessageId;
-                var text = Encoding.UTF8.GetString(message.Body);
-                var publicIpAddress = Unknown;
+                // Log message
+                log.LogInformation($"Started '{executionContext.FunctionName}' " + 
+                                   $"(Running, Id={executionContext.InvocationId}) " +
+                                   $"A message with Id={message.MessageId ?? Empty} " + 
+                                   $"has been received from the {queueName} queue");
 
+                // Initialize data
+                var messageId = string.IsNullOrEmpty(message.MessageId) ? 
+                                Guid.NewGuid().ToString() : 
+                                message.MessageId;
+                var text = Encoding.UTF8.GetString(message.Body) ?? Empty;
+                var publicIpAddress = Unknown;
+                
                 // Retrieve the public IP from Ipify site
                 try
                 {
@@ -66,11 +85,18 @@ namespace BaboNatGw
                     if (response.IsSuccessStatusCode)
                     {
                         publicIpAddress = await response.Content.ReadAsStringAsync();
+
+                        // Log message
+                        log.LogInformation($"Running '{executionContext.FunctionName}' " +
+                                           $"(Running, Id={executionContext.InvocationId}) " +
+                                           $"Call to {IpifyUrl} returned {publicIpAddress}");
                     }
                 }
                 catch (Exception ex)
                 {
-                    log.LogError(ex, $"An error occurred while processing message with id=[{messageId}]: {ex.Message}");
+                    log.LogError(ex, $"Error '{executionContext.FunctionName}' " +
+                                     $"(Running, Id={executionContext.InvocationId}) " +
+                                     $"An error occurred while calling {IpifyUrl}: {ex.Message}");
                 }
 
                 // Initialize message
@@ -78,16 +104,21 @@ namespace BaboNatGw
                 {
                     Id = messageId,
                     Message = text,
-                    Properties = new System.Collections.Generic.Dictionary<string, object>(message.UserProperties),
+                    Properties = new Dictionary<string, object>(message.UserProperties),
                     PublicIpAddress = publicIpAddress
                 };
 
                 // Store the message to Cosmos DB
                 await items.AddAsync(customMessage);
+                log.LogInformation($"Completed '{executionContext.FunctionName}' " +
+                                   $"(Running, Id={executionContext.InvocationId}) "+
+                                   $"The message with Id={message.MessageId ?? Empty} " +
+                                   $"has been successfully stored to Cosmos DB");
             }
             catch (Exception ex)
             {
-                log.LogError(ex, ex.Message);
+                log.LogError(ex, $"Failed '{executionContext.FunctionName}' " +
+                                 $"(Running, Id={executionContext.InvocationId}) {ex.Message}");
                 throw;
             }
         }
