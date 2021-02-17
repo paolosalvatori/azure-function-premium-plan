@@ -441,7 +441,7 @@ You can proceed as follows to run the sample:
 SELECT DISTINCT VALUE m.publicIpAddress FROM Messages m
 ```
 
-In case of failure of the external call Azure Functions app set the value of the UNKWON. As you can see below, none of the HTTPS calls to the external service returned an error, all of them used one of the 16 public IP addresses provided by the NAT Gateway and Public IP Address Prefix.
+In case of failure of the call to the external service, the Azure Functions app sets the value of the public IP address to `UNKNOWN`. As you can see below, none of the calls to the external service returned an error, all of them used one of the 16 public IP addresses provided by the NAT Gateway and Public IP Address Prefix.
 
 ```json
 [
