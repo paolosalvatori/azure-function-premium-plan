@@ -468,7 +468,7 @@ Below you can see the public IP address range in CIDR notation of the Public IP 
 
 ![Prefix](images/prefix.png)
 
-The Public IP Addres Prefix includes 16 public IP addresses that go from 20.61.15.128 to 20.61.15.143. For more information, see [CIDR Notation](https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing#:~:text=CIDR%20notation%20is%20a%20compact,bits%20in%20the%20network%20mask.).
+The Public IP Addres Prefix includes 16 public IP addresses that go from `20.61.15.128` to `20.61.15.143`. For more information, see [CIDR Notation](https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing#:~:text=CIDR%20notation%20is%20a%20compact,bits%20in%20the%20network%20mask.).
 
 You can also use the following query to retrieve how many outbound calls were made with each public IP address provided by the Public IP Address Prefix:
 
