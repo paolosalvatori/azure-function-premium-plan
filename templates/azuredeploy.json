@@ -39,7 +39,7 @@
         },
         "functionAppContentStorageAccountName": {
             "type": "string",
-            "defaultValue": "[concat('fac', uniquestring(resourceGroup().id))]",
+            "defaultValue": "[concat('func', uniquestring(resourceGroup().id))]",
             "metadata": {
                 "description": "Specifies the name of the storage account containing the application code."
             }
