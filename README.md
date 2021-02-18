@@ -28,8 +28,8 @@ The ARM template deploys the following resources:
   - **PrivateEndpointSubnet**: hosts the private endpoints used by the application.
   - **VirtualMachineSubnet**: hosts the Jumpbox virtual machine and any additional virtual machine used by the solution.
   - **AzureBastionSubnet**: hosts Azure Bastion. For more information, see [Working with NSG access and Azure Bastion](https://docs.microsoft.com/en-us/azure/bastion/bastion-nsg).
-- Network Security Group: this resource contains an inbound rule to allow the access to the jumpbox virtual machine on port 3389 (RDP)
-- A Windows 10 virtual machine. This virtual machine can be used as jumpbox virtual machine to access the Azure resources, such as the Service Bus namespace and Cosmos DB, exposed via [Azure Private Link](https://docs.microsoft.com/en-us/azure/private-link/private-link-overview) as the default access to their public endpoints is denied. As an alternative to using the jumpbox virtual machine, you can create an IP Firewall rule to allow the access from your local computer. For more information, see [Configure IP firewall in Azure Cosmos DB](https://docs.microsoft.com/en-us/azure/cosmos-db/how-to-configure-firewall)
+- Network Security Group: this resource contains an inbound rule to allow access to the jumpbox virtual machine on port 3389 (RDP)
+- A Windows 10 virtual machine. This virtual machine can be used as jumpbox virtual machine to access the Azure resources, such as the Service Bus namespace and Cosmos DB, exposed via [Azure Private Link](https://docs.microsoft.com/en-us/azure/private-link/private-link-overview) as the default access to their public endpoints is denied. As an alternative to using the jumpbox virtual machine, you can create an IP Firewall rule to allow access from your local computer. For more information, see [Configure IP firewall in Azure Cosmos DB](https://docs.microsoft.com/en-us/azure/cosmos-db/how-to-configure-firewall)
 - A Public IP for Azure Bastion
 - Azure Bastion is used to access the jumpbox virtual machine from the Azure Portal via RDP. For more information, see [What is Azure Bastion?](https://docs.microsoft.com/en-us/azure/bastion/bastion-overview).
 - An ADLS Gen 2 storage account used to store the boot diagnostics logs of the virtual machine as blobs
@@ -45,9 +45,9 @@ The ARM template deploys the following resources:
 - An Azure Cosmos used to store enriched messages. DB For more information, see [Welcome to Azure Cosmos DB](https://docs.microsoft.com/en-us/azure/cosmos-db/introduction).
 - A private endpoint to all the storage accounts, Service Bus namespace, and Cosmos DB account.
 - A Private DNS Zone Group to link each private endpoint with the corresponding Private DNS Zone.
-- The NIC used by the jumpbox virtual machine and for each private endpoint to storage accounts, Service Bus namespace, or Comsos DB account.
+- The NIC used by the jumpbox virtual machine and for each private endpoint to storage accounts, Service Bus namespace, or Cosmos DB account.
 - A NAT Gateway used by the Azure Functions app for the outbound connections from the integration subnet. For more information, see [Designing virtual networks with NAT gateway resources](https://docs.microsoft.com/en-us/azure/virtual-network/nat-gateway-resource).
-- An Public IP Address Prefix which provides a contiguous range of public IP addresses to the NAT Gateway. For more information, see [Public IP address prefix](https://docs.microsoft.com/en-us/azure/virtual-network/public-ip-address-prefix) and [Designing virtual networks with NAT gateway resources](https://docs.microsoft.com/en-us/azure/virtual-network/nat-gateway-resource).
+- A Public IP Address Prefix providing a contiguous range of public IP addresses to the NAT Gateway. For more information, see [Public IP address prefix](https://docs.microsoft.com/en-us/azure/virtual-network/public-ip-address-prefix) and [Designing virtual networks with NAT gateway resources](https://docs.microsoft.com/en-us/azure/virtual-network/nat-gateway-resource).
 - A Log Analytics workspace used to monitor the health status of the services such as the hosting plan or NSG.
 - A Private DNS Zone for File Storage Account private endpoints (privatelink.file.core.windows.net)
 - A Private DNS Zone for Blob Storage Account private endpoints (privatelink.blob.core.windows.net)
@@ -62,17 +62,17 @@ The following diagram shows the message flow of the demo:
 
 ![Architecture](images/flow.png)
 
-1. Use the Azure Portal or [Service Bus Explorer](https://github.com/paolosalvatori/ServiceBusExplorer) from the jumpbox virtual machine to send a message to the **requests** queue in the Service Bus namespace via the private endpoint. As an alternative, you can create an IP Firewall rule to allow the access to the Service Bus namespace from your computer and send messages from it. For more information, see [Allow access to Azure Service Bus namespace from specific IP addresses or ranges](https://docs.microsoft.com/en-us/azure/service-bus-messaging/service-bus-ip-filtering).
+1. Use the Azure Portal or [Service Bus Explorer](https://github.com/paolosalvatori/ServiceBusExplorer) from the jumpbox virtual machine to send a message to the **requests** queue in the Service Bus namespace via the private endpoint. As an alternative, you can create an IP Firewall rule to allow access to the Service Bus namespace from your computer and send messages from it. For more information, see [Allow access to Azure Service Bus namespace from specific IP addresses or ranges](https://docs.microsoft.com/en-us/azure/service-bus-messaging/service-bus-ip-filtering).
 2. The message is received by the Azure Function via the private endpoint using the [Azure Service Bus Trigger for Azure Functions](https://docs.microsoft.com/en-us/azure/azure-functions/functions-bindings-service-bus-trigger?tabs=csharp).
 3. The Function invokes the [ipify](https://api.ipify.org) external service to retrieve its public IP address. The WEBSITE_VNET_ROUTE_ALL setting of the Azure Functions app is set to 1, hence all of the outbound traffic from the Azure Functions is routed through the integration subnet. If you route all of the outbound calls from the Azure Functions app into the integration VNet, the traffic will be subject to the NSGs and UDRs that are applied to the integration subnet. For more information, see [Regional virtual network integration](https://docs.microsoft.com/en-us/azure/azure-functions/functions-networking-options#regional-virtual-network-integration). When you route all of the outbound traffic from the Azure Functions app into the integration VNet, and the subnet is not configured to use a NAT gateway, the outbound addresses are still the outbound addresses that are listed in your app properties unless you provide routes to send the traffic elsewhere. In this case, you need to pay attention to avoid SNAT ports exhaustion issue. For more information, see [SNAT with App Service](https://4lowtherabbit.github.io/blogs/2019/10/SNAT/) and [Manage connections in Azure Functions](https://docs.microsoft.com/en-us/azure/azure-functions/manage-connections).
-4. The integration subnet is configured to use a NAT Gateway for outbound connections, hence all the calls from the Azure Functions app to any external service go thorugh the NAT Gateway. The NAT Gateway solves another problem beyond providing a dedicated internet address. You can also now have 64k outbound SNAT ports usable by your apps. One of the challenges in the App Service is the limit on the number of connections you can have to the same address and port. There are more details on this problem in the [Troubleshooting intermittent outbound connection errors guide](https://docs.microsoft.com/azure/app-service/troubleshoot-intermittent-outbound-connection-errors). To use a NAT Gateway with your app, you need to
+4. The integration subnet is configured to use a NAT Gateway for outbound connections, hence all the calls from the Azure Functions app to any external service go through the NAT Gateway. The NAT Gateway solves another problem beyond providing a dedicated internet address. You can also now have 64k outbound SNAT ports usable by your apps. One of the challenges in the App Service is the limit on the number of connections you can have to the same address and port. There are more details on this problem in the [Troubleshooting intermittent outbound connection errors guide](https://docs.microsoft.com/azure/app-service/troubleshoot-intermittent-outbound-connection-errors). To use a NAT Gateway with your app, you need to
 
    - Configure Regional Vnet Integration with your app as described in Integrate your app with an Azure virtual network
    - Route all the outbound traffic into your Azure virtual network
    - Provision a NAT Gateway in the same virtual network and configure it with the subnet used for VNet Integration. For more information on this topology, see [NAT Gateway and app integration](https://azure.github.io/AppService/2020/11/15/web-app-nat-gateway.html)
-5. If a public IP prefix resource is used with a NA Gateway, all the IP addresses of the Public IP Prefix resource are consumed by a NAT gateway resource. In our sample, every outbound call via HTTPS from the Azure Function to the [ipify](https://api.ipify.org) external service will use one of the public IP address of the prefix.
+5. If a public IP prefix resource is used with a NA Gateway, all the IP addresses of the Public IP Prefix resource are consumed by a NAT gateway resource. In our sample, every outbound call via HTTPS from the Azure Function to the [ipify](https://api.ipify.org) external service will use one of the public IP addresses of the prefix.
 6. The Azure Function stores the message received from the Service Bus enriched with the public IP address received from the [ipify](https://api.ipify.org) external service to the Cosmos DB database via private endpoint.
-7. You can use the Azure Portal from the jumpbox virtual machine to query data in the Cosmos DB database using Data Explorer. For more information, see [Work with data using Azure Cosmos DB Explorer](https://docs.microsoft.com/en-us/azure/cosmos-db/data-explorer). As an alternative, you can create an IP Firewall rule to allow the access from your local computer and run queries from it. For more information, see [Configure IP firewall in Azure Cosmos DB](https://docs.microsoft.com/en-us/azure/cosmos-db/how-to-configure-firewall)
+7. You can use the Azure Portal from the jumpbox virtual machine to query data in the Cosmos DB database using Data Explorer. For more information, see [Work with data using Azure Cosmos DB Explorer](https://docs.microsoft.com/en-us/azure/cosmos-db/data-explorer). As an alternative, you can create an IP Firewall rule to allow access from your local computer and run queries from it. For more information, see [Configure IP firewall in Azure Cosmos DB](https://docs.microsoft.com/en-us/azure/cosmos-db/how-to-configure-firewall)
 
 ## Prerequisites
 
@@ -271,7 +271,7 @@ Once the Azure resources have been deployed to Azure (which can take about 10-12
 func azure functionapp publish [YOUR-FUNCTION-APP-NAME]
 ```
 
-Below you can read the code of the Azure Function. The code of the Azure Function makes use of the the dependency injection (DI) software design pattern, which is a technique to achieve [Inversion of Control (IoC)](https://docs.microsoft.com/en-us/dotnet/standard/modern-web-apps-azure-architecture/architectural-principles#dependency-inversion) between classes and their dependencies.
+Below you can read the code of the Azure Function. The code of the Azure Function makes use of the dependency injection (DI) software design pattern, which is a technique to achieve [Inversion of Control (IoC)](https://docs.microsoft.com/en-us/dotnet/standard/modern-web-apps-azure-architecture/architectural-principles#dependency-inversion) between classes and their dependencies.
 
 - Dependency injection in Azure Functions is built on the .NET Core Dependency Injection features. Familiarity with [.NET Core dependency injection](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/dependency-injection) is recommended. There are differences in how you override dependencies and how configuration values are read with Azure Functions on the Consumption plan.
 - Support for dependency injection begins with Azure Functions 2.x.
@@ -422,19 +422,19 @@ namespace Microsoft.Azure.Samples
 }
 ```
 
-As an altenative, you can use of a static, singleton instance of the HttpClient object to call the external ipify service via HTTPS. To avoid holding more connections than necessary, we suggest to reuse client instances rather than creating new ones with each function invocation. We recommend reusing client connections for any language that you might write your function in. For example, .NET clients like the HttpClient, DocumentClient, and Azure Storage clients can manage connections if you use a single, static client. For more information, see [https://docs.microsoft.com/en-us/azure/azure-functions/manage-connections#static-clients](https://docs.microsoft.com/en-us/azure/azure-functions/manage-connections#client-code-examples).
+As an alternative, you can use a static, singleton instance of the HttpClient object to call the external ipify service via HTTPS. To avoid holding more connections than necessary, we suggest reusing client instances rather than creating new ones with each function invocation. We recommend reusing client connections for any language that you might write your function in. For example, .NET clients like the HttpClient, DocumentClient, and Azure Storage clients can manage connections if you use a single, static client. For more information, see [https://docs.microsoft.com/en-us/azure/azure-functions/manage-connections#static-clients](https://docs.microsoft.com/en-us/azure/azure-functions/manage-connections#client-code-examples).
 
-Note: when debugging the Azure Function locally, make sure to replace the placeholders in the local.settings.json file with valid connection strings to storage account, Service Bus namespace, and Cosmos DB account.
+**Note**: when debugging the Azure Function locally, make sure to replace the placeholders in the `local.settings.json` file with a valid connection string for the storage account, Service Bus namespace, and Cosmos DB account.
 
 ## Run the sample
 
 You can proceed as follows to run the sample:
 
 1. Connect to the jumpbox virtual machine using Azure Bastion
-2. Use the [Service Bus Explorer](https://docs.microsoft.com/en-us/azure/service-bus-messaging/explorer) integrated in the Azure Portal or download and use the [Service Bus Explorer](https://github.com/paolosalvatori/ServiceBusExplorer) tool to send one more messages to the **requests** queue in the Service Bus namespace. In the latter case, you can retrieve the connection string of the Service Bus namespace from the Azure Portal.
+2. Use the [Service Bus Explorer](https://docs.microsoft.com/en-us/azure/service-bus-messaging/explorer) integrated into the Azure Portal or download and use the [Service Bus Explorer](https://github.com/paolosalvatori/ServiceBusExplorer) tool to send one or more messages to the **requests** queue in the Service Bus namespace. In the latter case, you can retrieve the connection string of the Service Bus namespace from the Azure Portal.
 ![Resources](images/servicebusexplorer.png)
 
-3. If using [Service Bus Explorer](https://github.com/paolosalvatori/ServiceBusExplorer) tool, send a batch of 1000 messages in a single shot to simulate a traffic burst.
+3. If you use the [Service Bus Explorer](https://github.com/paolosalvatori/ServiceBusExplorer) tool, send a batch of 1000 messages in a single shot to simulate a traffic burst.
 4. You can run the following query in Data Explorer to retrieve the list of public IP addresses used by the Azure Functions app to invoke the [ipify](https://api.ipify.org) external service. You will notice that they all belong to the Public IP Address Prefix resource used by the NAT Gateway.
 
 ```sql
@@ -468,7 +468,7 @@ Below you can see the public IP address range in CIDR notation of the Public IP 
 
 ![Prefix](images/prefix.png)
 
-The Public IP Addres Prefix includes 16 public IP addresses that go from `20.61.15.128` to `20.61.15.143`. For more information, see [CIDR Notation](https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing#:~:text=CIDR%20notation%20is%20a%20compact,bits%20in%20the%20network%20mask.).
+The Public IP Address Prefix includes 16 public IP addresses that go from `20.61.15.128` to `20.61.15.143`. For more information, see [CIDR Notation](https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing#:~:text=CIDR%20notation%20is%20a%20compact,bits%20in%20the%20network%20mask.).
 
 You can also use the following query to retrieve how many outbound calls were made with each public IP address provided by the Public IP Address Prefix:
 
