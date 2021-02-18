@@ -1,13 +1,19 @@
 name: .NET Core
-
 on:
   push:
     branches: [master]
-    paths-ignore: ./template
+    paths-ignore: 
+    - './templates'
+    - './visio'
+    - './images'
+    - './scripts'
   pull_request:
     branches: [master]
-    paths-ignore: ./template
-
+    paths-ignore: 
+    - './templates'
+    - './visio'
+    - './images'
+    - './scripts'
 jobs:
   build:
     runs-on: ubuntu-latest
