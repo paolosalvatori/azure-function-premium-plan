@@ -96,8 +96,8 @@ You can use the ARM template and Bash script included in the sample to deploy to
 #!/bin/bash
 
 # Variables
-resourceGroupName="PremiumFuncAppRG"
-location="WestEurope"
+resourceGroupName="<your-resource-group-name>"
+location="<your-favorite-location>"
 deploy=1
 
 # ARM template and parameters files
