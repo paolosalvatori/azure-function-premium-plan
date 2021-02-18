@@ -3,7 +3,7 @@ services: azure, azure-functions, azure-storage, azure-blob-storage, azure-servi
 platforms: dotnet-core, aspnet-core
 ---
 
-# How to use private endpoints and NAT gateway with Azure Functions
+# How to use Private Endpoints and NAT Gateway with Azure Functions
 
 ![Build .NET Core](https://github.com/paolosalvatori/azure-function-premium-plan/workflows/.NET%20Core/badge.svg)
 
