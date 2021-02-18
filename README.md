@@ -3,7 +3,7 @@ services: azure, azure-functions, azure-storage, azure-blob-storage, azure-servi
 platforms: dotnet-core, aspnet-core
 ---
 
-# Azure Functions, Private Endpoints and NAT Gateway
+# Azure Functions, Private Endpoints, and NAT Gateway
 
 ![Build .NET Core](https://github.com/paolosalvatori/azure-function-premium-plan/workflows/.NET%20Core/badge.svg)
 
